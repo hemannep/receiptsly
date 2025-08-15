@@ -1,4 +1,5 @@
 // lib/core/network/interceptors/error_interceptor.dart
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -6,14 +7,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../errors/exceptions.dart';
-import '../network_info.dart';
+import '../network_info.dart' as network_info;
 
 /// Error interceptor that handles and transforms network errors
 class ErrorInterceptor extends Interceptor {
   final bool enableCrashReporting;
-  final void Function(String, dynamic)? onError;
+  final void Function(String, dynamic)? errorCallback;
 
-  ErrorInterceptor({this.enableCrashReporting = true, this.onError});
+  ErrorInterceptor({this.enableCrashReporting = true, this.errorCallback});
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
@@ -28,7 +29,7 @@ class ErrorInterceptor extends Interceptor {
     }
 
     // Call custom error handler if provided
-    onError?.call('API Error', appException);
+    errorCallback?.call('API Error', appException);
 
     // Transform DioException to custom exception
     final customException = DioException(
@@ -54,10 +55,9 @@ class ErrorInterceptor extends Interceptor {
         final errors = data['errors'] as List<dynamic>?;
 
         final exception = ServerException(
-          message: errorMessage,
-          statusCode: response.statusCode,
-          errorCode: errorCode,
-          errors: errors?.cast<String>(),
+          errorMessage,
+          'Server returned error response',
+          response.statusCode,
         );
 
         final dioException = DioException(
@@ -76,25 +76,22 @@ class ErrorInterceptor extends Interceptor {
   }
 
   /// Handle different types of Dio errors
-  AppException _handleDioError(DioException error) {
+  ReceiptslyException _handleDioError(DioException error) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return NetworkException(
-          message:
-              'Request timeout. Please check your internet connection and try again.',
-          type: NetworkErrorType.timeout,
-          originalError: error,
+        return ConnectionTimeoutException(
+          'Request timeout. Please check your internet connection and try again.',
         );
 
       case DioExceptionType.badResponse:
         return _handleResponseError(error);
 
       case DioExceptionType.cancel:
-        return CancelException(
-          message: 'Request was cancelled',
-          originalError: error,
+        return NetworkException(
+          'Request was cancelled',
+          'The network request was cancelled by the user',
         );
 
       case DioExceptionType.connectionError:
@@ -102,10 +99,8 @@ class ErrorInterceptor extends Interceptor {
 
       case DioExceptionType.badCertificate:
         return NetworkException(
-          message:
-              'SSL certificate verification failed. This might be a security issue.',
-          type: NetworkErrorType.unknown,
-          originalError: error,
+          'SSL certificate verification failed',
+          'This might be a security issue',
         );
 
       case DioExceptionType.unknown:
@@ -115,7 +110,7 @@ class ErrorInterceptor extends Interceptor {
   }
 
   /// Handle HTTP response errors (4xx, 5xx)
-  AppException _handleResponseError(DioException error) {
+  ReceiptslyException _handleResponseError(DioException error) {
     final statusCode = error.response?.statusCode;
     final responseData = error.response?.data;
 
@@ -148,139 +143,103 @@ class ErrorInterceptor extends Interceptor {
 
     switch (statusCode) {
       case 400:
-        return ValidationException(
-          message: message.isEmpty ? 'Invalid request data' : message,
-          errors: errors ?? [],
-          statusCode: statusCode,
-          errorCode: errorCode,
-          originalError: error,
+        return BadRequestException(
+          message.isEmpty ? 'Invalid request data' : message,
         );
 
       case 401:
         return UnauthorizedException(
-          message: message.isEmpty ? 'Authentication required' : message,
-          statusCode: statusCode,
-          errorCode: errorCode,
-          originalError: error,
+          message.isEmpty ? 'Authentication required' : message,
         );
 
       case 403:
-        return ForbiddenException(
-          message: message.isEmpty ? 'Access denied' : message,
-          statusCode: statusCode,
-          errorCode: errorCode,
-          originalError: error,
-        );
+        return ForbiddenException(message.isEmpty ? 'Access denied' : message);
 
       case 404:
         return NotFoundException(
-          message: message.isEmpty ? 'Resource not found' : message,
-          statusCode: statusCode,
-          errorCode: errorCode,
-          originalError: error,
+          message.isEmpty ? 'Resource not found' : message,
         );
 
       case 409:
-        return ConflictException(
-          message: message.isEmpty ? 'Resource conflict occurred' : message,
-          statusCode: statusCode,
-          errorCode: errorCode,
-          originalError: error,
+        return NetworkException(
+          message.isEmpty ? 'Resource conflict occurred' : message,
+          'HTTP 409 Conflict',
+          409,
         );
 
       case 422:
         return ValidationException(
-          message: message.isEmpty ? 'Validation failed' : message,
-          errors: errors ?? [],
-          statusCode: statusCode,
-          errorCode: errorCode,
-          originalError: error,
+          message.isEmpty ? 'Validation failed' : message,
+          errors?.join(', '),
         );
 
       case 429:
-        return RateLimitException(
-          message: message.isEmpty
+        return RateLimitExceededException(
+          message.isEmpty
               ? 'Too many requests. Please try again later.'
               : message,
-          statusCode: statusCode,
-          errorCode: errorCode,
-          originalError: error,
         );
 
-      case >= 500:
+      case 500:
         return ServerException(
-          message: message.isEmpty ? 'Internal server error occurred' : message,
-          statusCode: statusCode,
-          errorCode: errorCode,
-          errors: errors,
-          originalError: error,
+          message.isEmpty ? 'Internal server error occurred' : message,
+          'Server Error',
+          statusCode,
         );
 
       default:
         return ServerException(
-          message: message.isEmpty ? 'Unexpected error occurred' : message,
-          statusCode: statusCode,
-          errorCode: errorCode,
-          errors: errors,
-          originalError: error,
+          message.isEmpty ? 'Unexpected error occurred' : message,
+          'Unknown Server Error',
+          statusCode,
         );
     }
   }
 
   /// Handle connection errors
-  AppException _handleConnectionError(DioException error) {
+  ReceiptslyException _handleConnectionError(DioException error) {
     final originalError = error.error;
 
     if (originalError is SocketException) {
       if (originalError.osError?.errorCode == 7) {
         // No address associated with hostname
-        return NetworkException(
-          message:
-              'Unable to connect to server. Please check your internet connection.',
-          type: NetworkErrorType.noConnection,
-          originalError: error,
+        return NoInternetException(
+          'Unable to connect to server. Please check your internet connection.',
         );
       } else if (originalError.osError?.errorCode == 111) {
         // Connection refused
-        return NetworkException(
-          message: 'Server is not responding. Please try again later.',
-          type: NetworkErrorType.serverError,
-          originalError: error,
+        return ServerException(
+          'Server is not responding. Please try again later.',
+          'Connection Refused',
         );
       }
     }
 
-    return NetworkException(
-      message:
-          'Network connection failed. Please check your internet connection.',
-      type: NetworkErrorType.noConnection,
-      originalError: error,
+    return NoInternetException(
+      'Network connection failed. Please check your internet connection.',
     );
   }
 
   /// Handle unknown errors
-  AppException _handleUnknownError(DioException error) {
+  ReceiptslyException _handleUnknownError(DioException error) {
     final originalError = error.error;
 
-    if (originalError is AppException) {
+    if (originalError is ReceiptslyException) {
       return originalError;
     }
 
     if (originalError is FormatException) {
-      return ParseException(
-        message: 'Failed to parse server response',
-        originalError: error,
-      );
+      return InvalidDataFormatException('Failed to parse server response');
     }
 
     return ServerException(
-      message: originalError?.toString() ?? 'An unexpected error occurred',
-      originalError: error,
+      originalError?.toString() ?? 'An unexpected error occurred',
+      'Unknown Error',
     );
   }
 
   /// Log error details
-  void _logError(DioException dioError, AppException appException) {
+  void _logError(DioException dioError, ReceiptslyException appException) {
     if (kDebugMode) {
       debugPrint('🔴 API Error occurred:');
       debugPrint('URL: ${dioError.requestOptions.uri}');
@@ -290,9 +249,8 @@ class ErrorInterceptor extends Interceptor {
       debugPrint('App Exception: ${appException.runtimeType}');
       debugPrint('Message: ${appException.message}');
 
-      if (appException is ValidationException &&
-          appException.errors.isNotEmpty) {
-        debugPrint('Validation Errors: ${appException.errors}');
+      if (appException is ValidationException && appException.field != null) {
+        debugPrint('Validation Field: ${appException.field}');
       }
 
       if (dioError.requestOptions.data != null) {
@@ -306,7 +264,7 @@ class ErrorInterceptor extends Interceptor {
   }
 
   /// Report error to crash analytics
-  void _reportError(DioException dioError, AppException appException) {
+  void _reportError(DioException dioError, ReceiptslyException appException) {
     try {
       // This would integrate with your crash reporting service
       // Examples: Firebase Crashlytics, Sentry, Bugsnag
@@ -339,7 +297,7 @@ class EnhancedErrorInterceptor extends ErrorInterceptor {
 
   EnhancedErrorInterceptor({
     super.enableCrashReporting,
-    super.onError,
+    super.errorCallback,
     this.rateLimitResetDuration = const Duration(minutes: 1),
     this.maxRetryAttempts = 3,
   });
@@ -447,12 +405,12 @@ class EnhancedErrorInterceptor extends ErrorInterceptor {
 class ErrorHandler {
   /// Get user-friendly error message
   static String getUserFriendlyMessage(dynamic error) {
-    if (error is AppException) {
-      return error.userFriendlyMessage;
+    if (error is ReceiptslyException) {
+      return error.message;
     }
 
-    if (error is DioException && error.error is AppException) {
-      return (error.error as AppException).userFriendlyMessage;
+    if (error is DioException && error.error is ReceiptslyException) {
+      return (error.error as ReceiptslyException).message;
     }
 
     return 'An unexpected error occurred. Please try again.';
@@ -461,8 +419,11 @@ class ErrorHandler {
   /// Check if error is recoverable
   static bool isRecoverable(dynamic error) {
     if (error is NetworkException) {
-      return error.type == NetworkErrorType.timeout ||
-          error.type == NetworkErrorType.noConnection;
+      return error.statusCode == null || error.statusCode! >= 500;
+    }
+
+    if (error is ConnectionTimeoutException || error is NoInternetException) {
+      return true;
     }
 
     if (error is ServerException) {
@@ -474,7 +435,9 @@ class ErrorHandler {
 
   /// Get error category for analytics
   static String getErrorCategory(dynamic error) {
-    if (error is NetworkException) {
+    if (error is NetworkException ||
+        error is NoInternetException ||
+        error is ConnectionTimeoutException) {
       return 'network';
     } else if (error is ValidationException) {
       return 'validation';
@@ -490,7 +453,7 @@ class ErrorHandler {
   /// Check if error should be reported to analytics
   static bool shouldReport(dynamic error) {
     // Don't report client errors (4xx except 401, 403)
-    if (error is AppException && error.statusCode != null) {
+    if (error is NetworkException && error.statusCode != null) {
       final statusCode = error.statusCode!;
       return statusCode < 400 ||
           statusCode >= 500 ||
@@ -506,7 +469,7 @@ class ErrorHandler {
 final errorInterceptorProvider = Provider<ErrorInterceptor>((ref) {
   return ErrorInterceptor(
     enableCrashReporting: !kDebugMode,
-    onError: (title, error) {
+    errorCallback: (title, error) {
       // Handle global error notifications here
       debugPrint('Global Error: $title - $error');
     },

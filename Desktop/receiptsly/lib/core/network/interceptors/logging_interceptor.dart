@@ -566,7 +566,7 @@ class AnalyticsLoggingInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    _trackEvent(response.requestOptions, response.statusCode);
+    _trackEvent(response.requestOptions, response.statusCode ?? 0);
     handler.next(response);
   }
 

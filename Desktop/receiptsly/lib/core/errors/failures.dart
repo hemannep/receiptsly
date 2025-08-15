@@ -80,7 +80,7 @@ class PhoneVerificationFailure extends AuthFailure {
 }
 
 /// Network related failures
-abstract class NetworkFailure extends Failure {
+class NetworkFailure extends Failure {
   const NetworkFailure(String message, [String? details, this.statusCode])
     : super(message, details);
 

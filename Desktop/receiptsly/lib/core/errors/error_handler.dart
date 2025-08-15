@@ -382,34 +382,49 @@ class ErrorHandler {
   }
 
   /// Map Dio exceptions to network failures
+  /// Map Dio exceptions to network failures
   NetworkFailure _mapDioErrorToFailure(DioException error) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.sendTimeout:
-        return ConnectionTimeoutFailure(error.message);
+        return ConnectionTimeoutFailure(error.message ?? 'Connection timeout');
 
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode ?? 0;
         switch (statusCode) {
           case 400:
-            return BadRequestFailure(error.response?.data?.toString());
+            return BadRequestFailure(
+              error.response?.data?.toString() ?? 'Bad request',
+            );
           case 401:
-            return UnauthorizedFailure(error.response?.data?.toString());
+            return UnauthorizedFailure(
+              error.response?.data?.toString() ?? 'Unauthorized',
+            );
           case 403:
-            return ForbiddenFailure(error.response?.data?.toString());
+            return ForbiddenFailure(
+              error.response?.data?.toString() ?? 'Forbidden',
+            );
           case 404:
-            return NotFoundFailure(error.response?.data?.toString());
+            return NotFoundFailure(
+              error.response?.data?.toString() ?? 'Not found',
+            );
           case 429:
-            return RateLimitFailure(error.response?.data?.toString());
+            return RateLimitFailure(
+              error.response?.data?.toString() ?? 'Too many requests',
+            );
           default:
             if (statusCode >= 500) {
               return ServerFailure(
-                error.response?.data?.toString(),
+                error.response?.data?.toString() ?? 'Server error',
                 statusCode,
               );
             }
-            return NetworkFailure('Network error', error.message, statusCode);
+            return NetworkFailure(
+              'Network error occurred',
+              error.message ?? 'Unknown network error',
+              statusCode,
+            );
         }
 
       case DioExceptionType.cancel:
@@ -417,13 +432,19 @@ class ErrorHandler {
 
       case DioExceptionType.connectionError:
         if (error.error is SocketException) {
-          return NoInternetFailure(error.message);
+          return NoInternetFailure(error.message ?? 'No internet connection');
         }
-        return NetworkFailure('Connection error', error.message);
+        return NetworkFailure(
+          'Connection error',
+          error.message ?? 'Unknown connection error',
+        );
 
       case DioExceptionType.unknown:
       default:
-        return NetworkFailure('Unknown network error', error.message);
+        return NetworkFailure(
+          'Unknown network error',
+          error.message ?? 'An unexpected network error occurred',
+        );
     }
   }
 

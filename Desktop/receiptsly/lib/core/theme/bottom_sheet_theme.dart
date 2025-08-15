@@ -21,8 +21,8 @@ class AppBottomSheetTheme {
     dragHandleSize: const Size(32, 4),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(AppDimensions.borderRadiusXL),
-        topRight: Radius.circular(AppDimensions.borderRadiusXL),
+        topLeft: Radius.circular(AppDimensions.bottomSheetRadius),
+        topRight: Radius.circular(AppDimensions.bottomSheetRadius),
       ),
     ),
     clipBehavior: Clip.antiAlias,
@@ -45,8 +45,8 @@ class AppBottomSheetTheme {
     dragHandleSize: const Size(32, 4),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(AppDimensions.borderRadiusXL),
-        topRight: Radius.circular(AppDimensions.borderRadiusXL),
+        topLeft: Radius.circular(AppDimensions.bottomSheetRadius),
+        topRight: Radius.circular(AppDimensions.bottomSheetRadius),
       ),
     ),
     clipBehavior: Clip.antiAlias,
@@ -84,8 +84,8 @@ class AppBottomSheetTheme {
         borderRadius:
             borderRadius ??
             const BorderRadius.only(
-              topLeft: Radius.circular(AppDimensions.borderRadiusXL),
-              topRight: Radius.circular(AppDimensions.borderRadiusXL),
+              topLeft: Radius.circular(AppDimensions.bottomSheetRadius),
+              topRight: Radius.circular(AppDimensions.bottomSheetRadius),
             ),
       ),
     );
@@ -93,47 +93,53 @@ class AppBottomSheetTheme {
 
   /// Create modal bottom sheet theme
   static BottomSheetThemeData createModalBottomSheetTheme(
+    BuildContext context,
     Brightness brightness,
   ) {
     final baseTheme = getBottomSheetTheme(brightness);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return baseTheme.copyWith(
       modalElevation: AppDimensions.elevation16,
       modalBarrierColor: AppColors.overlay.withOpacity(0.8),
       constraints: BoxConstraints(
         maxWidth: double.infinity,
-        maxHeight: AppDimensions.screenHeight * 0.9,
+        maxHeight: screenHeight * 0.9,
       ),
     );
   }
 
   /// Create persistent bottom sheet theme
   static BottomSheetThemeData createPersistentBottomSheetTheme(
+    BuildContext context,
     Brightness brightness,
   ) {
     final baseTheme = getBottomSheetTheme(brightness);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return baseTheme.copyWith(
       elevation: AppDimensions.elevation8,
       showDragHandle: false,
       constraints: BoxConstraints(
         maxWidth: double.infinity,
-        maxHeight: AppDimensions.screenHeight * 0.6,
+        maxHeight: screenHeight * 0.6,
       ),
     );
   }
 
   /// Create full screen bottom sheet theme
   static BottomSheetThemeData createFullScreenBottomSheetTheme(
+    BuildContext context,
     Brightness brightness,
   ) {
     final baseTheme = getBottomSheetTheme(brightness);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return baseTheme.copyWith(
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       constraints: BoxConstraints(
         maxWidth: double.infinity,
-        maxHeight: AppDimensions.screenHeight,
+        maxHeight: screenHeight,
       ),
       showDragHandle: false,
     );
@@ -141,20 +147,22 @@ class AppBottomSheetTheme {
 
   /// Create compact bottom sheet theme
   static BottomSheetThemeData createCompactBottomSheetTheme(
+    BuildContext context,
     Brightness brightness,
   ) {
     final baseTheme = getBottomSheetTheme(brightness);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return baseTheme.copyWith(
       elevation: AppDimensions.elevation4,
       constraints: BoxConstraints(
         maxWidth: double.infinity,
-        maxHeight: AppDimensions.screenHeight * 0.4,
+        maxHeight: screenHeight * 0.4,
       ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppDimensions.borderRadiusL),
-          topRight: Radius.circular(AppDimensions.borderRadiusL),
+          topLeft: Radius.circular(AppDimensions.radiusXL),
+          topRight: Radius.circular(AppDimensions.radiusXL),
         ),
       ),
     );
@@ -162,17 +170,19 @@ class AppBottomSheetTheme {
 
   /// Create expansion bottom sheet theme
   static BottomSheetThemeData createExpansionBottomSheetTheme(
+    BuildContext context,
     Brightness brightness,
   ) {
     final baseTheme = getBottomSheetTheme(brightness);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return baseTheme.copyWith(
       showDragHandle: true,
       dragHandleSize: const Size(48, 6),
       constraints: BoxConstraints(
         maxWidth: double.infinity,
-        minHeight: AppDimensions.screenHeight * 0.3,
-        maxHeight: AppDimensions.screenHeight * 0.95,
+        minHeight: screenHeight * 0.3,
+        maxHeight: screenHeight * 0.95,
       ),
     );
   }
@@ -187,8 +197,8 @@ class AppBottomSheetTheme {
       constraints: const BoxConstraints(maxWidth: double.infinity),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppDimensions.borderRadiusXL),
-          topRight: Radius.circular(AppDimensions.borderRadiusXL),
+          topLeft: Radius.circular(AppDimensions.bottomSheetRadius),
+          topRight: Radius.circular(AppDimensions.bottomSheetRadius),
         ),
       ),
       showDragHandle: false,
@@ -197,9 +207,11 @@ class AppBottomSheetTheme {
 
   /// Create notification sheet theme
   static BottomSheetThemeData createNotificationSheetTheme(
+    BuildContext context,
     Brightness brightness,
   ) {
     final baseTheme = getBottomSheetTheme(brightness);
+    final screenHeight = MediaQuery.of(context).size.height;
     final bgColor = brightness == Brightness.dark
         ? AppColors.darkSurface
         : AppColors.lightSurface;
@@ -210,7 +222,7 @@ class AppBottomSheetTheme {
       modalBarrierColor: Colors.transparent,
       constraints: BoxConstraints(
         maxWidth: double.infinity,
-        maxHeight: AppDimensions.screenHeight * 0.5,
+        maxHeight: screenHeight * 0.5,
       ),
       showDragHandle: true,
     );
@@ -218,20 +230,21 @@ class AppBottomSheetTheme {
 
   /// Create form bottom sheet theme
   static BottomSheetThemeData createFormBottomSheetTheme(
+    BuildContext context,
     Brightness brightness,
   ) {
     final baseTheme = getBottomSheetTheme(brightness);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return baseTheme.copyWith(
-      isScrollControlled: true,
       constraints: BoxConstraints(
         maxWidth: double.infinity,
-        maxHeight: AppDimensions.screenHeight * 0.85,
+        maxHeight: screenHeight * 0.85,
       ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppDimensions.borderRadiusXL),
-          topRight: Radius.circular(AppDimensions.borderRadiusXL),
+          topLeft: Radius.circular(AppDimensions.bottomSheetRadius),
+          topRight: Radius.circular(AppDimensions.bottomSheetRadius),
         ),
       ),
       showDragHandle: true,

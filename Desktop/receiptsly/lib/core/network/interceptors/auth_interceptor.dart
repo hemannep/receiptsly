@@ -54,7 +54,7 @@ class AuthInterceptor extends Interceptor {
       if (_accessToken == null || _isTokenExpired()) {
         final refreshed = await _refreshAccessToken();
         if (!refreshed) {
-          throw UnauthorizedException(message: 'Authentication required');
+          throw UnauthorizedException('Authentication required');
         }
       }
 
@@ -99,7 +99,7 @@ class AuthInterceptor extends Interceptor {
       handler.reject(
         DioException(
           requestOptions: err.requestOptions,
-          error: UnauthorizedException(message: 'Session expired'),
+          error: UnauthorizedException('Session expired'),
           type: DioExceptionType.unknown,
         ),
       );

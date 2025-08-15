@@ -407,6 +407,8 @@ class AppConfig {
     'environmentConfig': _environmentConfig.getDebugInfo(),
   };
 
+  get certificateFingerprints => null;
+
   /// Reset configuration to defaults (useful for testing)
   void reset() {
     _environment = Environment.development;

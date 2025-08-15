@@ -16,9 +16,6 @@ class AppSnackBarTheme {
     elevation: AppDimensions.elevation6,
     shape: RoundedRectangleBorder(borderRadius: AppDimensions.borderRadiusLG),
     behavior: SnackBarBehavior.floating,
-    margin: AppDimensions.paddingLG,
-    padding: null,
-    width: null,
     insetPadding: AppDimensions.paddingLG,
     showCloseIcon: true,
     closeIconColor: AppColors.white,
@@ -28,7 +25,6 @@ class AppSnackBarTheme {
       AppTypography.snackbarMessage,
       AppColors.white,
     ),
-    actionOverflowThreshold: 0.25,
     actionBackgroundColor: AppColors.transparent,
     dismissDirection: DismissDirection.horizontal,
   );
@@ -40,9 +36,6 @@ class AppSnackBarTheme {
     elevation: AppDimensions.elevation6,
     shape: RoundedRectangleBorder(borderRadius: AppDimensions.borderRadiusLG),
     behavior: SnackBarBehavior.floating,
-    margin: AppDimensions.paddingLG,
-    padding: null,
-    width: null,
     insetPadding: AppDimensions.paddingLG,
     showCloseIcon: true,
     closeIconColor: AppColors.black,
@@ -52,7 +45,6 @@ class AppSnackBarTheme {
       AppTypography.snackbarMessage,
       AppColors.black,
     ),
-    actionOverflowThreshold: 0.25,
     actionBackgroundColor: AppColors.transparent,
     dismissDirection: DismissDirection.horizontal,
   );
@@ -74,6 +66,7 @@ class AppSnackBarTheme {
     SnackBarBehavior? behavior,
     double? elevation,
     BorderRadius? borderRadius,
+    EdgeInsets? padding,
     Brightness brightness = Brightness.light,
   }) {
     final baseTheme = getSnackBarTheme(brightness);
@@ -87,9 +80,10 @@ class AppSnackBarTheme {
       actionTextColor: actionTextColor ?? baseTheme.actionTextColor,
       behavior: behavior ?? baseTheme.behavior,
       elevation: elevation ?? baseTheme.elevation,
-      shape: RoundedRectangleBorder(
-        borderRadius: borderRadius ?? AppDimensions.borderRadiusLG,
-      ),
+      shape: borderRadius != null
+          ? RoundedRectangleBorder(borderRadius: borderRadius)
+          : baseTheme.shape,
+      insetPadding: padding ?? baseTheme.insetPadding,
     );
   }
 
@@ -139,7 +133,7 @@ class AppSnackBarTheme {
 
     return baseTheme.copyWith(
       behavior: SnackBarBehavior.fixed,
-      margin: EdgeInsets.zero,
+      insetPadding: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }

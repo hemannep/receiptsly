@@ -8,8 +8,8 @@ import 'package:receiptsly/core/network/dio_client.dart';
 
 import '../config/environment.dart';
 import '../constants/api_endpoints.dart';
-import '../errors/exceptions.dart';
-import 'network_info.dart';
+import '../errors/exceptions.dart' as exceptions;
+import 'network_info.dart' hide NetworkException;
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/error_interceptor.dart';
 import 'interceptors/logging_interceptor.dart';
@@ -396,10 +396,10 @@ class DioApiClient implements ApiClient {
     );
 
     if (!response.success || response.data == null) {
-      throw ServerException(
-        response.message ??
-            'Failed to fetch paginated data', // Positional argument
-        response.statusCode as String?, // Positional argument
+      throw exceptions.ServerException(
+        response.message ?? 'Failed to fetch paginated data',
+        null,
+        response.statusCode,
       );
     }
     return PaginatedResponse.fromJson(response.data!, fromJson);
@@ -539,45 +539,38 @@ class DioApiClient implements ApiClient {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
-          return NetworkException(
-            message: 'Request timeout. Please try again.',
-            type: NetworkErrorType.timeout,
+          return exceptions.ConnectionTimeoutException(
+            'Request timeout. Please try again.',
           );
 
         case DioExceptionType.badResponse:
           final statusCode = error.response?.statusCode;
           final message = _extractErrorMessage(error.response?.data);
 
-          return ServerException(
-            message: message ?? 'Server error occurred',
-            statusCode: statusCode,
+          return exceptions.ServerException(
+            message ?? 'Server error occurred',
+            null,
+            statusCode,
           );
 
         case DioExceptionType.cancel:
-          return CancelException(message: 'Request was cancelled');
+          return exceptions.DataException('Request was cancelled');
 
         case DioExceptionType.connectionError:
-          return NetworkException(
-            message: 'Network connection error',
-            type: NetworkErrorType.noConnection,
-          );
+          return exceptions.NoInternetException('Network connection error');
 
         default:
-          return NetworkException(
-            message: error.message ?? 'Unknown network error',
-            type: NetworkErrorType.unknown,
+          return exceptions.NetworkException(
+            error.message ?? 'Unknown network error',
           );
       }
     }
 
     if (error is SocketException) {
-      return NetworkException(
-        message: 'No internet connection',
-        type: NetworkErrorType.noConnection,
-      );
+      return exceptions.NoInternetException('No internet connection');
     }
 
-    return ServerException(message: error.toString());
+    return exceptions.ServerException(error.toString());
   }
 
   /// Extract error message from response
@@ -594,10 +587,7 @@ class DioApiClient implements ApiClient {
   Future<void> _checkNetworkConnectivity() async {
     final isConnected = await _networkInfo.isConnected;
     if (!isConnected) {
-      throw NetworkException(
-        message: 'No internet connection',
-        type: NetworkErrorType.noConnection,
-      );
+      throw exceptions.NoInternetException('No internet connection');
     }
   }
 }

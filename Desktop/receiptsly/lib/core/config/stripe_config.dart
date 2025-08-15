@@ -95,8 +95,7 @@ class StripeConfig {
   // Currency configuration
   static const Map<String, Map<String, dynamic>> _currencyConfig = {
     'usd': {
-      'symbol':
-          r'$', // Using raw string (r'') to treat $ literally, or just '$'
+      'symbol': r'$',
       'name': 'US Dollar',
       'locale': 'en_US',
       'decimalDigits': 2,
@@ -114,13 +113,13 @@ class StripeConfig {
       'decimalDigits': 2,
     },
     'cad': {
-      'symbol': r'C$', // or 'C\$'
+      'symbol': r'C$',
       'name': 'Canadian Dollar',
       'locale': 'en_CA',
       'decimalDigits': 2,
     },
     'aud': {
-      'symbol': r'A$', // or 'A\$'
+      'symbol': r'A$',
       'name': 'Australian Dollar',
       'locale': 'en_AU',
       'decimalDigits': 2,
@@ -209,7 +208,7 @@ class StripeConfig {
   }
 
   /// Create payment intent for one-time payments
-  Future<PaymentIntent> createPaymentIntent({
+  Future<Map<String, dynamic>> createPaymentIntent({
     required int amount,
     required String currency,
     String? customerId,
@@ -221,7 +220,7 @@ class StripeConfig {
     try {
       // This would typically call your backend API
       // For demo purposes, showing the structure
-      final paymentIntent = await Stripe.instance.createPaymentMethod(
+      final paymentMethod = await Stripe.instance.createPaymentMethod(
         params: const PaymentMethodParams.card(
           paymentMethodData: PaymentMethodData(),
         ),
@@ -233,20 +232,17 @@ class StripeConfig {
         );
       }
 
-      return PaymentIntent(
-        id: paymentIntent.id,
-        amount: amount,
-        currency: currency,
-        status: PaymentIntentsStatus.RequiresPaymentMethod,
-        created: (DateTime.now().millisecondsSinceEpoch ~/ 1000)
-            .toString(), // current timestamp in seconds
-        clientSecret:
-            paymentIntent.clientSecret ??
-            '', // or generate one if not available
-        livemode: false, // or true if in production
-        captureMethod: 'automatic', // or 'manual'
-        confirmationMethod: 'automatic', // or 'manual'
-      );
+      return {
+        'id': paymentMethod.id,
+        'amount': amount,
+        'currency': currency,
+        'status': 'requires_payment_method',
+        'created': (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),
+        'client_secret': '', // This should come from your backend
+        'livemode': !AppConfig.instance.isProduction,
+        'capture_method': 'automatic',
+        'confirmation_method': 'automatic',
+      };
     } catch (e) {
       if (kDebugMode) {
         print('❌ Payment intent creation failed: $e');
@@ -297,7 +293,7 @@ class StripeConfig {
           customerEphemeralKeySecret: customerEphemeralKeySecret,
           merchantDisplayName: 'Receiptsly',
           allowsDelayedPaymentMethods:
-              _paymentConfig['allowsDelayedPaymentMethods'],
+              _paymentConfig['allowsDelayedPaymentMethods'] as bool,
           style: ThemeMode.system,
           appearance: PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(
@@ -362,7 +358,12 @@ class StripeConfig {
   /// Check if Apple Pay is supported
   Future<bool> isApplePaySupported() async {
     try {
-      return await Stripe.instance.isApplePaySupported();
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        return await Stripe.instance.isPlatformPaySupported(
+          params: const PlatformPaySupportedParams(googlePayEnabled: false),
+        );
+      }
+      return false;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Apple Pay check failed: $e');
@@ -374,7 +375,12 @@ class StripeConfig {
   /// Check if Google Pay is supported
   Future<bool> isGooglePaySupported() async {
     try {
-      return await Stripe.instance.isGooglePaySupported();
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        return await Stripe.instance.isPlatformPaySupported(
+          params: const PlatformPaySupportedParams(googlePayEnabled: true),
+        );
+      }
+      return false;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Google Pay check failed: $e');
@@ -392,16 +398,22 @@ class StripeConfig {
     _ensureInitialized();
 
     try {
-      await Stripe.instance.presentApplePay(
-        params: ApplePayPresentParams(
-          cartItems: cartItems,
-          country: country,
-          currency: currency,
-        ),
-      );
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        await Stripe.instance.confirmPlatformPayPayment(
+          clientSecret: '', // You need to provide a client secret here
+          params: PlatformPayPaymentParams(
+            applePay: PlatformPayApplePayParams(
+              cartItems: cartItems,
+              merchantCountryCode: country,
+              currency: currency,
+            ),
+            googlePay: null,
+          ),
+        );
 
-      if (kDebugMode) {
-        print('🍎 Apple Pay payment completed');
+        if (kDebugMode) {
+          print('🍎 Apple Pay payment completed');
+        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -421,24 +433,22 @@ class StripeConfig {
     _ensureInitialized();
 
     try {
-      await Stripe.instance.initGooglePay(
-        GooglePayInitParams(
-          testEnv: !AppConfig.instance.isProduction,
-          existingPaymentMethodRequired: false,
-          merchantName: 'Receiptsly',
-          countryCode: country,
-        ),
-      );
-
-      await Stripe.instance.presentGooglePay(
-        PresentGooglePayParams(
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        await Stripe.instance.confirmPlatformPayPayment(
           clientSecret: clientSecret,
-          forSetupIntent: false,
-        ),
-      );
+          params: PlatformPayPaymentParams(
+            googlePay: PlatformPayGooglePayParams(
+              currencyCode: currency,
+              amount: amount,
+              merchantCountryCode: country,
+            ),
+            applePay: null,
+          ),
+        );
 
-      if (kDebugMode) {
-        print('🤖 Google Pay payment completed');
+        if (kDebugMode) {
+          print('🤖 Google Pay payment completed');
+        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -504,7 +514,7 @@ class StripeConfig {
 
     final symbol = config['symbol'] as String;
     final decimalDigits = config['decimalDigits'] as int;
-    final amount = amountInCents / (100 * decimalDigits);
+    final amount = amountInCents / 100;
 
     return '$symbol${amount.toStringAsFixed(decimalDigits)}';
   }

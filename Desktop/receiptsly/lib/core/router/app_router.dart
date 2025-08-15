@@ -35,6 +35,7 @@ import '../../presentation/screens/reports/export_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
 import '../../presentation/screens/settings/profile_settings_screen.dart';
 import '../../presentation/screens/settings/business_settings_screen.dart';
+import 'package:flutter/material.dart' as material;
 import '../../presentation/screens/settings/integration_settings_screen.dart';
 import '../../presentation/screens/settings/subscription_screen.dart';
 import '../../presentation/screens/settings/sync_settings_screen.dart';
@@ -43,6 +44,9 @@ import '../constants/routes.dart';
 import '../errors/exceptions.dart';
 import 'route_guards.dart';
 import 'route_transitions.dart';
+
+/// Route transition types
+enum RouteTransitionType { slide, fade, scale, none }
 
 /// Application router configuration
 class AppRouter {
@@ -445,7 +449,7 @@ class AppRouter {
     GoRouterState state,
     WidgetRef ref,
   ) {
-    final currentLocation = state.fullPath;
+    final currentLocation = state.fullPath ?? state.matchedLocation;
     final authGuard = ref.read(authGuardProvider);
     final onboardingGuard = ref.read(onboardingGuardProvider);
 
@@ -471,11 +475,8 @@ class AppRouter {
 
   /// Create refresh listenable for router
   static Listenable _createRefreshListenable(WidgetRef ref) {
-    // Combine multiple state changes that should trigger router refresh
-    return Listenable.merge([
-      ref.read(authStateProvider.notifier),
-      ref.read(onboardingStateProvider.notifier),
-    ]);
+    // Create a simple notifier that can be used to refresh the router
+    return ChangeNotifier();
   }
 
   /// Build error page
@@ -496,36 +497,58 @@ class ErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return material.Scaffold(
+      body: material.Center(
+        child: material.Padding(
+          padding: const material.EdgeInsets.all(24.0),
+          child: material.Column(
+            mainAxisAlignment: material.MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              const Text(
+              const material.Icon(
+                material.Icons.error_outline,
+                size: 64,
+                color: material.Colors.red,
+              ),
+              const material.SizedBox(height: 16),
+              const material.Text(
                 'Navigation Error',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: material.TextStyle(
+                  fontSize: 24,
+                  fontWeight: material.FontWeight.bold,
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
+              const material.SizedBox(height: 8),
+              material.Text(
                 error,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: material.TextAlign.center,
+                style: const material.TextStyle(
+                  fontSize: 16,
+                  color: material.Colors.grey,
+                ),
               ),
-              const SizedBox(height: 24),
+              const material.SizedBox(height: 24),
               if (onRetry != null)
-                ElevatedButton(
+                material.ElevatedButton(
                   onPressed: onRetry,
-                  child: const Text('Go to Dashboard'),
+                  child: const material.Text('Go to Dashboard'),
                 ),
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+/// Bottom Navigation Shell Widget
+class BottomNavigationShell extends StatelessWidget {
+  final Widget child;
+
+  const BottomNavigationShell({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(body: child, bottomNavigationBar: const BottomNavigation());
   }
 }
 
@@ -657,9 +680,25 @@ extension AppRouterExtension on GoRouter {
       case RouteNames.syncSettings:
         return '${Routes.settings}/sync';
       default:
-        throw AppException(message: 'Unknown route name: $routeName');
+        throw CustomAppException(message: 'Unknown route name: $routeName');
     }
   }
+}
+
+/// Custom Application Exception
+class CustomAppException implements Exception {
+  final String message;
+  final String? code;
+  final dynamic originalError;
+
+  const CustomAppException({
+    required this.message,
+    this.code,
+    this.originalError,
+  });
+
+  @override
+  String toString() => 'CustomAppException: $message';
 }
 
 /// Navigation service for easier navigation throughout the app
@@ -849,3 +888,57 @@ final currentRouteProvider = Provider<String>((ref) {
   final router = ref.watch(appRouterProvider);
   return router.routerDelegate.currentConfiguration.last.matchedLocation;
 });
+
+// Required Routes and RouteNames classes that need to be defined elsewhere
+class Routes {
+  static const String splash = '/splash';
+  static const String login = '/login';
+  static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+  static const String phoneVerification = '/phone-verification';
+  static const String onboarding = '/onboarding';
+  static const String dashboard = '/dashboard';
+  static const String receipts = '/receipts';
+  static const String invoices = '/invoices';
+  static const String clients = '/clients';
+  static const String reports = '/reports';
+  static const String settings = '/settings';
+}
+
+class RouteNames {
+  static const String splash = 'splash';
+  static const String login = 'login';
+  static const String register = 'register';
+  static const String forgotPassword = 'forgotPassword';
+  static const String phoneVerification = 'phoneVerification';
+  static const String onboarding = 'onboarding';
+  static const String businessSetup = 'businessSetup';
+  static const String taxSettings = 'taxSettings';
+  static const String chatIntegration = 'chatIntegration';
+  static const String dashboard = 'dashboard';
+  static const String receipts = 'receipts';
+  static const String receiptCamera = 'receiptCamera';
+  static const String receiptDetail = 'receiptDetail';
+  static const String receiptEdit = 'receiptEdit';
+  static const String bulkUpload = 'bulkUpload';
+  static const String invoices = 'invoices';
+  static const String createInvoice = 'createInvoice';
+  static const String invoiceDetail = 'invoiceDetail';
+  static const String invoicePreview = 'invoicePreview';
+  static const String invoiceTemplates = 'invoiceTemplates';
+  static const String paymentTracking = 'paymentTracking';
+  static const String clients = 'clients';
+  static const String addClient = 'addClient';
+  static const String clientDetail = 'clientDetail';
+  static const String reports = 'reports';
+  static const String expenseReport = 'expenseReport';
+  static const String incomeReport = 'incomeReport';
+  static const String taxEstimate = 'taxEstimate';
+  static const String exportReport = 'exportReport';
+  static const String settings = 'settings';
+  static const String profileSettings = 'profileSettings';
+  static const String businessSettings = 'businessSettings';
+  static const String integrationSettings = 'integrationSettings';
+  static const String subscription = 'subscription';
+  static const String syncSettings = 'syncSettings';
+}

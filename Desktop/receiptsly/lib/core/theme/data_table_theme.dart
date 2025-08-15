@@ -22,9 +22,7 @@ class AppDataTableTheme {
     ),
     columnSpacing: AppDimensions.spaceXL,
     horizontalMargin: AppDimensions.spaceLG,
-    minWidth: 600.0,
     dividerThickness: AppDimensions.dividerThickness,
-    showCheckboxColumn: true,
     checkboxHorizontalMargin: AppDimensions.spaceMD,
     dataRowColor: MaterialStateProperty.resolveWith((states) {
       if (states.contains(MaterialState.selected)) {
@@ -60,9 +58,7 @@ class AppDataTableTheme {
     ),
     columnSpacing: AppDimensions.spaceXL,
     horizontalMargin: AppDimensions.spaceLG,
-    minWidth: 600.0,
     dividerThickness: AppDimensions.dividerThickness,
-    showCheckboxColumn: true,
     checkboxHorizontalMargin: AppDimensions.spaceMD,
     dataRowColor: MaterialStateProperty.resolveWith((states) {
       if (states.contains(MaterialState.selected)) {
@@ -187,7 +183,6 @@ class AppDataTableTheme {
             : AppColors.lightSurface,
       ),
       dividerThickness: 0,
-      showCheckboxColumn: false,
     );
   }
 

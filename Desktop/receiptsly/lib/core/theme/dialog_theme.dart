@@ -1,5 +1,3 @@
-// lib/core/theme/dialog_theme.dart
-
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
@@ -23,7 +21,6 @@ class AppDialogTheme {
     titleTextStyle: AppTypography.dialogTitle,
     contentTextStyle: AppTypography.dialogContent,
     actionsPadding: AppDimensions.paddingLG,
-    buttonPadding: AppDimensions.paddingMD,
     insetPadding: AppDimensions.paddingXXL,
   );
 
@@ -47,7 +44,6 @@ class AppDialogTheme {
       AppColors.darkTextSecondary,
     ),
     actionsPadding: AppDimensions.paddingLG,
-    buttonPadding: AppDimensions.paddingMD,
     insetPadding: AppDimensions.paddingXXL,
   );
 
