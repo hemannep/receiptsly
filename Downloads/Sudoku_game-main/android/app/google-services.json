@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "398706858243",
+    "project_id": "soduko-37e37",
+    "storage_bucket": "soduko-37e37.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398706858243:android:83e470958d8edc14dc3136",
+        "android_client_info": {
+          "package_name": "com.example.sudokugame"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqYTYUFLidai_bcSIX6Co9TJ2rAx8knFc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
